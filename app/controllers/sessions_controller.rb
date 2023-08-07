@@ -1,28 +1,21 @@
 class SessionsController < ApplicationController
-    def create
-      @user = User.find_by(email: params[:session][:email].downcase)
-      if @user && @user.authenticate(params[:session][:password])
-        session[:user_id] = @user.id
-        if @user.is_a?(Admin)
-          redirect_to admin_dashboard_path
-        elsif @user.is_a?(Charity)
-          redirect_to charity_dashboard_path
-        elsif @user.is_a?(Donor)
-          redirect_to donor_dashboard_path
-        else
-          # Handle unknown user type
-          flash[:alert] = "Unknown user type"
-          redirect_to root_path
-        end
-      else
-        flash.now[:alert] = 'Invalid email/password combination'
-        render 'new'
-      end
+  protect_from_forgery with: :exception
+
+  def create
+    # Authenticate user based on credentials (email and password)
+    user = User.authenticate(params[:email], params[:password])
+
+    if user
+      token = encode_token(user.id, user.email, user.user_type)
+      save_user(user.id, user.user_type)
+      render json: { user: user, token: token }, status: :ok
+    else
+      render json: { error: 'Invalid email or password' }, status: :unauthorized
     end
-  
-    def destroy
-      session.delete(:user_id)
-      @current_user = nil
-      redirect_to root_path
-    end
+  end
+
+  def destroy
+    remove_user
+    render json: { message: 'Logout successful' }
+  end
 end
