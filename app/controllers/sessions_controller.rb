@@ -1,21 +1,48 @@
 class SessionsController < ApplicationController
-  protect_from_forgery with: :exception
+  def signup
+    user_type = params[:user][:user_type].downcase
+    if valid_user_type?(user_type)
+      @user = user_type.capitalize.constantize.new(user_params)
+
+      if @user.save
+        token = encode_token(@user.id, @user.email, user_type)
+        render json: { user: @user, token: token }, status: :created
+      else
+        render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
+      end
+    else
+      render json: { error: 'Invalid user type' }, status: :unprocessable_entity
+    end
+  end
 
   def create
-    # Authenticate user based on credentials (email and password)
-    user = User.authenticate(params[:email], params[:password])
+    user_type = params[:session][:user_type].downcase
+    if valid_user_type?(user_type)
+      @user = user_type.capitalize.constantize.find_by(email: params[:session][:email].downcase)
 
-    if user
-      token = encode_token(user.id, user.email, user.user_type)
-      save_user(user.id, user.user_type)
-      render json: { user: user, token: token }, status: :ok
+      if @user && @user.authenticate(params[:session][:password])
+        token = encode_token(@user.id, @user.email, user_type)
+        render json: { user: @user, token: token }, status: :ok
+      else
+        render json: { error: 'Invalid email/password combination' }, status: :unauthorized
+      end
     else
-      render json: { error: 'Invalid email or password' }, status: :unauthorized
+      render json: { error: 'Invalid user type' }, status: :unprocessable_entity
     end
   end
 
   def destroy
     remove_user
     render json: { message: 'Logout successful' }
+  end
+
+  private
+
+  def user_params
+    params.require(:user).permit(:name, :email, :password)
+  end
+
+  def valid_user_type?(user_type)
+    %w(admin charity donor).include?(user_type)
   end
 end
