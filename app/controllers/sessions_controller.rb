@@ -1,28 +1,48 @@
 class SessionsController < ApplicationController
-    def create
-      @user = User.find_by(email: params[:session][:email].downcase)
-      if @user && @user.authenticate(params[:session][:password])
-        session[:user_id] = @user.id
-        if @user.is_a?(Admin)
-          redirect_to admin_dashboard_path
-        elsif @user.is_a?(Charity)
-          redirect_to charity_dashboard_path
-        elsif @user.is_a?(Donor)
-          redirect_to donor_dashboard_path
-        else
-          # Handle unknown user type
-          flash[:alert] = "Unknown user type"
-          redirect_to root_path
-        end
+  def signup
+    user_type = params[:user][:user_type].downcase
+    if valid_user_type?(user_type)
+      @user = user_type.capitalize.constantize.new(user_params)
+
+      if @user.save
+        token = encode_token(@user.id, @user.email, user_type)
+        render json: { user: @user, token: token }, status: :created
       else
-        flash.now[:alert] = 'Invalid email/password combination'
-        render 'new'
+        render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
       end
+    else
+      render json: { error: 'Invalid user type' }, status: :unprocessable_entity
     end
-  
-    def destroy
-      session.delete(:user_id)
-      @current_user = nil
-      redirect_to root_path
+  end
+
+  def create
+    user_type = params[:session][:user_type].downcase
+    if valid_user_type?(user_type)
+      @user = user_type.capitalize.constantize.find_by(email: params[:session][:email].downcase)
+
+      if @user && @user.authenticate(params[:session][:password])
+        token = encode_token(@user.id, @user.email, user_type)
+        render json: { user: @user, token: token }, status: :ok
+      else
+        render json: { error: 'Invalid email/password combination' }, status: :unauthorized
+      end
+    else
+      render json: { error: 'Invalid user type' }, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    remove_user
+    render json: { message: 'Logout successful' }
+  end
+
+  private
+
+  def user_params
+    params.require(:user).permit(:name, :email, :password)
+  end
+
+  def valid_user_type?(user_type)
+    %w(admin charity donor).include?(user_type)
+  end
 end
