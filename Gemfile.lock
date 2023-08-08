@@ -93,7 +93,7 @@ GEM
       net-smtp
     marcel (1.0.2)
     method_source (1.0.0)
-    mini_mime (1.1.2)
+    mini_mime (1.1.5)
     minitest (5.19.0)
     msgpack (1.7.2)
     net-imap (0.3.7)
@@ -128,7 +128,7 @@ GEM
       activesupport (= 7.0.6)
       bundler (>= 1.15.0)
       railties (= 7.0.6)
-    rails-dom-testing (2.1.1)
+    rails-dom-testing (2.2.0)
       activesupport (>= 5.0.0)
       minitest
       nokogiri (>= 1.6)
@@ -162,6 +162,7 @@ PLATFORMS
 DEPENDENCIES
   bootsnap
   debug
+  net-protocol (= 0.2.1)
   puma (~> 5.0)
   rails (~> 7.0.6)
   sqlite3 (~> 1.4)
@@ -172,4 +173,4 @@ RUBY VERSION
    ruby 2.7.4p191
 
 BUNDLED WITH
-   2.4.17
+   2.4.18

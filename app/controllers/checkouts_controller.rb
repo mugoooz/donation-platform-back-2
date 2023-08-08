@@ -1,3 +1,0 @@
-class CheckoutsController < ApplicationController
-    
-end
